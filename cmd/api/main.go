@@ -11,7 +11,7 @@ func main() {
 	addr := ":8080"
 	mysqlConfig := mysql.Config{
 		User:      "root",
-		Passwd:    "Paco2024+",
+		Passwd:    "Dilan2208",
 		Net:       "tcp",
 		Addr:      "localhost:3306",
 		DBName:    "grupo_proteger",
@@ -22,8 +22,13 @@ func main() {
 
 	server := application.NewServerChi(cfg)
 
-	if err := server.Run(); err != nil {
+	err := server.Run()
+
+	if err != nil {
 		fmt.Println(err)
 		return
+	} else {
+		fmt.Print("Server is run on port: 8080")
 	}
+
 }

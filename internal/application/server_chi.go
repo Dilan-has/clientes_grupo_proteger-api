@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/handlers"
+	"go.uber.org/zap"
 )
 
 type ConfigurationServer struct {
@@ -58,28 +59,30 @@ func (s *serverChi) Run() (err error) {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
+	logger, err := zap.NewDevelopment()
+
 	router.Route("/api/v1", func(r chi.Router) {
-		buildClientRouter(r, db)
-		buildAffiliateRouter(r, db)
-		buildLegalRepRouter(r, db)
-		buildCredentialsRouter(r, db)
-		buildLoginRouter(r, db)
+		buildClientRouter(r, db, logger)
+		buildAffiliateRouter(r, db, logger)
+		buildLegalRepRouter(r, db, logger)
+		buildCredentialsRouter(r, db, logger)
+		buildLoginRouter(r, db, logger)
 	})
 
 	corsHeaders := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
-	corsOrigins := handlers.AllowedOrigins([]string{"http://localhost:5173"})
+	corsOrigins := handlers.AllowedOrigins([]string{"*"})
 	corsMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 
 	err = http.ListenAndServe(s.addr, handlers.CORS(corsHeaders, corsOrigins, corsMethods)(router))
 	return
 }
 
-func buildClientRouter(router chi.Router, db *sql.DB) {
+func buildClientRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
 
 	rp := repository.NewClientMysql(db)
 	svc := service.NewClientDefault(rp)
 	hd := handler.NewClientHandler(svc)
-	rpAuth := repository.NewUserRepository(db)
+	rpAuth := repository.NewUserRepository(db, logger)
 	authService := service.NewAuthDefault(rpAuth)
 
 	router.Group(func(r chi.Router) {
@@ -94,12 +97,12 @@ func buildClientRouter(router chi.Router, db *sql.DB) {
 	})
 }
 
-func buildAffiliateRouter(router chi.Router, db *sql.DB) {
+func buildAffiliateRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
 
 	rp := repository.NewAffiliateMySql(db)
 	svc := service.NewAffiliateDefault(rp)
 	hd := handler.NewAffiliateHandler(svc)
-	rpAuth := repository.NewUserRepository(db)
+	rpAuth := repository.NewUserRepository(db, logger)
 	authService := service.NewAuthDefault(rpAuth)
 
 	router.Group(func(r chi.Router) {
@@ -114,12 +117,12 @@ func buildAffiliateRouter(router chi.Router, db *sql.DB) {
 	})
 }
 
-func buildLegalRepRouter(router chi.Router, db *sql.DB) {
+func buildLegalRepRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
 
 	rp := repository.NewLegalRepMySql(db)
 	svc := service.NewLegalRepDefault(rp)
 	hd := handler.NewLegalRepDefault(svc)
-	rpAuth := repository.NewUserRepository(db)
+	rpAuth := repository.NewUserRepository(db, logger)
 	authService := service.NewAuthDefault(rpAuth)
 
 	router.Group(func(r chi.Router) {
@@ -133,12 +136,12 @@ func buildLegalRepRouter(router chi.Router, db *sql.DB) {
 	})
 }
 
-func buildCredentialsRouter(router chi.Router, db *sql.DB) {
+func buildCredentialsRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
 
-	rp := repository.NewCredentialsMySql(db)
+	rp := repository.NewCredentialsMySql(db, logger)
 	svc := service.NewCredentialsDefault(rp)
 	hd := handler.NewCredentialsHandler(svc)
-	rpAuth := repository.NewUserRepository(db)
+	rpAuth := repository.NewUserRepository(db, logger)
 	authService := service.NewAuthDefault(rpAuth)
 
 	router.Group(func(r chi.Router) {
@@ -152,8 +155,8 @@ func buildCredentialsRouter(router chi.Router, db *sql.DB) {
 	})
 }
 
-func buildLoginRouter(router chi.Router, db *sql.DB) {
-	rp := repository.NewUserRepository(db)
+func buildLoginRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
+	rp := repository.NewUserRepository(db, logger)
 	svc := service.NewAuthDefault(rp)
 	hd := handler.NewAuthHandler(svc)
 

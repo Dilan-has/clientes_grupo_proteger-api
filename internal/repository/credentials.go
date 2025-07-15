@@ -4,21 +4,25 @@ import (
 	"database/sql"
 
 	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal"
+	"go.uber.org/zap"
 )
 
-func NewCredentialsMySql(db *sql.DB) *CredentialsSQL {
+func NewCredentialsMySql(db *sql.DB, logger *zap.Logger) *CredentialsSQL {
 	return &CredentialsSQL{
 		db,
+		logger,
 	}
 }
 
 type CredentialsSQL struct {
-	db *sql.DB
+	db     *sql.DB
+	logger *zap.Logger
 }
 
 func (r *CredentialsSQL) FindAll() (credentials []internal.Credentials, err error) {
-	rows, err := r.db.Query("SELECT c.`id`, c.`id_client`, c.`organization, c.`user`, c.`pass` FROM `credentials` AS `c`;")
+	rows, err := r.db.Query("SELECT c.`id`, c.`id_client`, c.`organization`, c.`user`, c.`pass` FROM `credentials` AS `c`;")
 	if err != nil {
+		r.logger.Error(err.Error())
 		return
 	}
 
