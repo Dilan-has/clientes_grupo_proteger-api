@@ -1,19 +1,22 @@
 package internal
 
-import "errors"
+import (
+	"errors"
+)
 
 type Affiliate struct {
-	ID        int
-	Name      string
-	Cc        string
-	Eps       string
-	Status    string
-	IdClient  int
-	Pension   string
-	Risk      string
-	Caja      string
-	Income    string
-	Birthdate string
+	ID              int
+	Name            string
+	Cc              string
+	Eps             string
+	Status          string
+	IdClient        int
+	Pension         string
+	Risk            string
+	Caja            string
+	Income          string
+	Birthdate       string
+	LastPaymentDate string
 }
 
 type AffiliateService interface {

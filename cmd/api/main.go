@@ -1,13 +1,14 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/application"
 	"github.com/go-sql-driver/mysql"
+	"go.uber.org/zap"
 )
 
 func main() {
+	logger, _ := zap.NewDevelopment()
+
 	addr := ":8080"
 	mysqlConfig := mysql.Config{
 		User:      "root",
@@ -18,17 +19,17 @@ func main() {
 		ParseTime: true,
 	}
 
-	cfg := application.ConfigurationServer{Addr: addr, MySQLDSN: mysqlConfig.FormatDSN()}
+	mongoURI := "mongodb://localhost:27017"
 
-	server := application.NewServerChi(cfg)
+	cfg := application.ConfigurationServer{Addr: addr, MySQLDSN: mysqlConfig.FormatDSN(), MongoURI: mongoURI}
+
+	server := application.NewServerChi(cfg, logger)
 
 	err := server.Run()
 
 	if err != nil {
-		fmt.Println(err)
+		logger.Log(zap.ErrorLevel, "Error to start")
 		return
-	} else {
-		fmt.Print("Server is run on port: 8080")
 	}
 
 }

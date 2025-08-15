@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -9,14 +11,17 @@ import (
 	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/dto/affiliate"
 	"github.com/go-chi/chi/v5"
 	resp "github.com/nicklaw5/go-respond"
+	"go.uber.org/zap"
 )
 
-func NewAffiliateHandler(affiliateService internal.AffiliateService) *AffiliateHandler {
-	return &AffiliateHandler{affiliateService: affiliateService}
+func NewAffiliateHandler(affiliateService internal.AffiliateService, historyService internal.HistoryService, logger zap.Logger) *AffiliateHandler {
+	return &AffiliateHandler{affiliateService: affiliateService, historyService: historyService, logger: logger}
 }
 
 type AffiliateHandler struct {
 	affiliateService internal.AffiliateService
+	historyService   internal.HistoryService
+	logger           zap.Logger
 }
 
 func (h *AffiliateHandler) FindAll() http.HandlerFunc {
@@ -81,20 +86,48 @@ func (h *AffiliateHandler) FindByCc() http.HandlerFunc {
 
 func (h *AffiliateHandler) Create() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		var dto affiliate.RequestDTO
-		err := json.NewDecoder(request.Body).Decode(&dto)
+		logger := h.logger
 
-		affiliate_ := dto.Deserialize(dto)
+		bodyBytes, err := io.ReadAll(request.Body)
 		if err != nil {
+			logger.Error("Error leyendo el body: ", zap.Error(err))
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		logger.Info("Request Body: ", zap.String("body", string(bodyBytes)))
+
+		request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		var dto affiliate.RequestDTO
+		err = json.NewDecoder(request.Body).Decode(&dto)
+		if err != nil {
+			logger.Error("Error deserializando el JSON", zap.Error(err))
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		affiliate_ := dto.Deserialize(dto)
 
 		err = h.affiliateService.Create(&affiliate_)
 		if err != nil {
 			writer.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		history := []internal.DateHistory{
+			{
+				Entry_date: affiliate_.Income,
+			},
+		}
+
+		payload := &internal.History{
+			Id:      affiliate_.ID,
+			Name:    affiliate_.Name,
+			Cc:      affiliate_.Cc,
+			History: history,
+		}
+
+		err = h.historyService.SaveHistory(request.Context(), payload)
 
 		responseDTO := &affiliate.ResponseDTO{}
 		response := responseDTO.Serialize(affiliate_)
@@ -124,14 +157,27 @@ func (h *AffiliateHandler) Delete() http.HandlerFunc {
 
 func (h *AffiliateHandler) Update() http.HandlerFunc {
 	return func(writer http.ResponseWriter, request *http.Request) {
-		var dto affiliate.RequestDTO
-		err := json.NewDecoder(request.Body).Decode(&dto)
+		logger := h.logger
 
-		affiliate_ := dto.Deserialize(dto)
+		bodyBytes, err := io.ReadAll(request.Body)
 		if err != nil {
+			logger.Error("Error leyendo el body: ", zap.Error(err))
 			writer.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		logger.Info("Request Body: ", zap.String("body", string(bodyBytes)))
+
+		request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+		var dto affiliate.RequestDTO
+		err = json.NewDecoder(request.Body).Decode(&dto)
+		if err != nil {
+			logger.Error("Error deserializando el JSON", zap.Error(err))
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		affiliate_ := dto.Deserialize(dto)
 
 		err = h.affiliateService.Update(&affiliate_)
 		if err != nil {

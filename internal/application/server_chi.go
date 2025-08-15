@@ -1,26 +1,31 @@
 package application
 
 import (
+	"context"
 	"database/sql"
 	"net/http"
 
 	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/handler"
 	md "github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/middleware"
-	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/repository"
+	repositoryMongo "github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/repository/no_sql"
+	repository "github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/repository/sql"
 	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/gorilla/handlers"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.uber.org/zap"
 )
 
 type ConfigurationServer struct {
 	Addr     string
 	MySQLDSN string
+	MongoURI string
 }
 
 // NewServerChi creates a new instance of the server
-func NewServerChi(cfg ConfigurationServer) *serverChi {
+func NewServerChi(cfg ConfigurationServer, logger *zap.Logger) *serverChi {
 	// default config
 	defaultCfg := ConfigurationServer{
 		Addr:     ":8080",
@@ -36,12 +41,16 @@ func NewServerChi(cfg ConfigurationServer) *serverChi {
 	return &serverChi{
 		addr:     defaultCfg.Addr,
 		mysqlDSN: defaultCfg.MySQLDSN,
+		mongoURI: cfg.MongoURI,
+		logger:   logger,
 	}
 }
 
 type serverChi struct {
 	addr     string
 	mysqlDSN string
+	mongoURI string
+	logger   *zap.Logger
 }
 
 func (s *serverChi) Run() (err error) {
@@ -50,29 +59,56 @@ func (s *serverChi) Run() (err error) {
 		return
 	}
 	defer db.Close()
+
 	err = db.Ping()
 	if err != nil {
 		return
 	}
+
+	mongoClient, err := mongo.Connect(context.Background(), options.Client().ApplyURI(s.mongoURI))
+	if err != nil {
+		s.logger.Fatal("❌ Error conectando a MongoDB", zap.Error(err))
+		return
+	}
+
+	err = mongoClient.Ping(context.Background(), nil)
+	if err != nil {
+		s.logger.Fatal("❌ Error al hacer ping a MongoDB", zap.Error(err))
+		return
+	}
+
+	s.logger.Info("✅ Conexión a MongoDB exitosa")
+
+	mongoDB := mongoClient.Database("grupo_proteger")
 
 	router := chi.NewRouter()
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
 	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return
+	}
+	defer logger.Sync()
 
+	// Registrar rutas
 	router.Route("/api/v1", func(r chi.Router) {
 		buildClientRouter(r, db, logger)
-		buildAffiliateRouter(r, db, logger)
+		buildAffiliateRouter(r, db, mongoDB, logger)
 		buildLegalRepRouter(r, db, logger)
 		buildCredentialsRouter(r, db, logger)
 		buildLoginRouter(r, db, logger)
 	})
 
+	// Configuración CORS
 	corsHeaders := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	corsOrigins := handlers.AllowedOrigins([]string{"*"})
 	corsMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 
+	// ✅ Log justo antes de levantar el servidor
+	logger.Info("✅ Servidor levantado correctamente", zap.String("addr", s.addr))
+
+	// Levantar el servidor (bloqueante)
 	err = http.ListenAndServe(s.addr, handlers.CORS(corsHeaders, corsOrigins, corsMethods)(router))
 	return
 }
@@ -97,11 +133,13 @@ func buildClientRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
 	})
 }
 
-func buildAffiliateRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
+func buildAffiliateRouter(router chi.Router, db *sql.DB, mongoDb *mongo.Database, logger *zap.Logger) {
 
-	rp := repository.NewAffiliateMySql(db)
-	svc := service.NewAffiliateDefault(rp)
-	hd := handler.NewAffiliateHandler(svc)
+	affiliateRp := repository.NewAffiliateMySql(db, logger)
+	historyRp := repositoryMongo.NewHistorialRepository(mongoDb)
+	affiliateSvc := service.NewAffiliateDefault(affiliateRp)
+	historySvc := service.NewHistoryDefault(historyRp)
+	hd := handler.NewAffiliateHandler(affiliateSvc, historySvc, *logger)
 	rpAuth := repository.NewUserRepository(db, logger)
 	authService := service.NewAuthDefault(rpAuth)
 
