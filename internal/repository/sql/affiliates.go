@@ -19,7 +19,7 @@ type AffiliateSql struct {
 }
 
 func (r *AffiliateSql) FindAll() (affiliates []internal.Affiliate, err error) {
-	rows, err := r.db.Query("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`income`, a.`last_payment_date` FROM `affiliates` AS `a`")
+	rows, err := r.db.Query("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`entry_date`, a.`last_payment_date` FROM `affiliates` AS `a`")
 	if err != nil {
 		return
 	}
@@ -37,7 +37,7 @@ func (r *AffiliateSql) FindAll() (affiliates []internal.Affiliate, err error) {
 			&affiliate.Risk,
 			&affiliate.Birthdate,
 			&affiliate.Caja,
-			&affiliate.Income,
+			&affiliate.EntryDate,
 			&affiliate.LastPaymentDate,
 		)
 		if err != nil {
@@ -54,7 +54,7 @@ func (r *AffiliateSql) FindAll() (affiliates []internal.Affiliate, err error) {
 }
 
 func (r *AffiliateSql) FindByID(id int) (affiliate internal.Affiliate, err error) {
-	row := r.db.QueryRow("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`income`, a.`last_payment_date` FROM `affiliates` AS `a` WHERE a.`id` = ?", id)
+	row := r.db.QueryRow("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`entry_date`, a.`last_payment_date` FROM `affiliates` AS `a` WHERE a.`id` = ?", id)
 
 	err = row.Scan(
 		&affiliate.ID,
@@ -67,7 +67,7 @@ func (r *AffiliateSql) FindByID(id int) (affiliate internal.Affiliate, err error
 		&affiliate.Risk,
 		&affiliate.Birthdate,
 		&affiliate.Caja,
-		&affiliate.Income,
+		&affiliate.EntryDate,
 		&affiliate.LastPaymentDate,
 	)
 	if err != nil {
@@ -81,7 +81,7 @@ func (r *AffiliateSql) FindByID(id int) (affiliate internal.Affiliate, err error
 }
 
 func (r *AffiliateSql) FindByCc(cc string) (affiliates []internal.Affiliate, err error) {
-	rows, err := r.db.Query("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`income`, a.`last_payment_date` FROM `affiliates` AS `a` WHERE a.`cc` = ?", cc)
+	rows, err := r.db.Query("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`entry_date`, a.`last_payment_date` FROM `affiliates` AS `a` WHERE a.`cc` = ?", cc)
 	if err != nil {
 		return
 	}
@@ -99,7 +99,7 @@ func (r *AffiliateSql) FindByCc(cc string) (affiliates []internal.Affiliate, err
 			&affiliate.Risk,
 			&affiliate.Birthdate,
 			&affiliate.Caja,
-			&affiliate.Income,
+			&affiliate.EntryDate,
 			&affiliate.LastPaymentDate,
 		)
 		if err != nil {
@@ -113,7 +113,7 @@ func (r *AffiliateSql) FindByCc(cc string) (affiliates []internal.Affiliate, err
 }
 
 func (r *AffiliateSql) Create(affiliate *internal.Affiliate) error {
-	result, err := r.db.Exec("INSERT INTO `affiliates` (`name`, `cc`, `eps`, `status`, `id_client`, `pension`, `risk`, `birthdate`, `caja`, `income`, `last_payment_date`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+	result, err := r.db.Exec("INSERT INTO `affiliates` (`name`, `cc`, `eps`, `status`, `id_client`, `pension`, `risk`, `birthdate`, `caja`, `entry_date`, `last_payment_date`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		(*affiliate).Name,
 		(*affiliate).Cc,
 		(*affiliate).Eps,
@@ -123,7 +123,7 @@ func (r *AffiliateSql) Create(affiliate *internal.Affiliate) error {
 		(*affiliate).Risk,
 		(*affiliate).Birthdate,
 		(*affiliate).Caja,
-		(*affiliate).Income,
+		(*affiliate).EntryDate,
 		(*affiliate).LastPaymentDate,
 	)
 	if err != nil {
@@ -157,7 +157,7 @@ func (r *AffiliateSql) Delete(id int) error {
 }
 
 func (r *AffiliateSql) Update(affiliate *internal.Affiliate) error {
-	result, err := r.db.Exec("UPDATE `affiliates` SET `name` = ?, `cc` = ?, `eps` = ?, `status` = ?, `id_client` = ?, `pension` = ?, `risk` = ?, `birthdate` = ?, `caja` = ?, `income` = ?, `last_payment_date` = ? WHERE `id` = ?",
+	result, err := r.db.Exec("UPDATE `affiliates` SET `name` = ?, `cc` = ?, `eps` = ?, `status` = ?, `id_client` = ?, `pension` = ?, `risk` = ?, `birthdate` = ?, `caja` = ?, `entry_date` = ?, `last_payment_date` = ? WHERE `id` = ?",
 		(*affiliate).Name,
 		(*affiliate).Cc,
 		(*affiliate).Eps,
@@ -167,7 +167,7 @@ func (r *AffiliateSql) Update(affiliate *internal.Affiliate) error {
 		(*affiliate).Risk,
 		(*affiliate).Birthdate,
 		(*affiliate).Caja,
-		(*affiliate).Income,
+		(*affiliate).EntryDate,
 		(*affiliate).LastPaymentDate,
 		(*affiliate).ID,
 	)
@@ -196,7 +196,7 @@ func (r *AffiliateSql) Update(affiliate *internal.Affiliate) error {
 }
 
 func (r *AffiliateSql) FindByClientID(idClient int) (affiliates []internal.Affiliate, err error) {
-	rows, err := r.db.Query("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`income`, a.`last_payment_date` FROM `affiliates` AS `a` WHERE a.`id_client` = ?", idClient)
+	rows, err := r.db.Query("SELECT a.`id`, a.`name`, a.`cc`, a.`eps`, a.`status`, a.`id_client`, a.`pension`, a.`risk`, a.`birthdate`, a.`caja`, a.`entry_date`, a.`last_payment_date` FROM `affiliates` AS `a` WHERE a.`id_client` = ?", idClient)
 	if err != nil {
 		return
 	}
@@ -214,7 +214,7 @@ func (r *AffiliateSql) FindByClientID(idClient int) (affiliates []internal.Affil
 			&affiliate.Risk,
 			&affiliate.Birthdate,
 			&affiliate.Caja,
-			&affiliate.Income,
+			&affiliate.EntryDate,
 			&affiliate.LastPaymentDate,
 		)
 		if err != nil {

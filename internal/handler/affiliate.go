@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal"
 	"github.com/Users/dilperez/Documents/clientes_grupo_proteger/internal/dto/affiliate"
@@ -114,20 +115,29 @@ func (h *AffiliateHandler) Create() http.HandlerFunc {
 			return
 		}
 
-		history := []internal.DateHistory{
-			{
-				Entry_date: affiliate_.Income,
-			},
+		dateHistory := internal.DateHistory{}
+		if dto.EntryDate != "" {
+			dateHistory.Entry_date = strings.Split(dto.EntryDate, "T")[0]
+		}
+		if dto.EndDate != "" {
+			dateHistory.End_date = strings.Split(dto.EndDate, "T")[0]
 		}
 
-		payload := &internal.History{
-			Id:      affiliate_.ID,
-			Name:    affiliate_.Name,
-			Cc:      affiliate_.Cc,
-			History: history,
-		}
+		if dateHistory.Entry_date != "" || dateHistory.End_date != "" {
+			history := []internal.DateHistory{dateHistory}
 
-		err = h.historyService.SaveHistory(request.Context(), payload)
+			payload := &internal.History{
+				Id:      affiliate_.ID,
+				Name:    affiliate_.Name,
+				Cc:      affiliate_.Cc,
+				History: history,
+			}
+
+			err = h.historyService.SaveHistory(request.Context(), payload)
+			if err != nil {
+				logger.Error("Error guardando el historial", zap.Error(err))
+			}
+		}
 
 		responseDTO := &affiliate.ResponseDTO{}
 		response := responseDTO.Serialize(affiliate_)
@@ -185,6 +195,30 @@ func (h *AffiliateHandler) Update() http.HandlerFunc {
 			return
 		}
 
+		dateHistory := internal.DateHistory{}
+		if dto.EntryDate != "" {
+			dateHistory.Entry_date = strings.Split(dto.EntryDate, "T")[0]
+		}
+		if dto.EndDate != "" {
+			dateHistory.End_date = strings.Split(dto.EndDate, "T")[0]
+		}
+
+		if dateHistory.Entry_date != "" || dateHistory.End_date != "" {
+			history := []internal.DateHistory{dateHistory}
+
+			payload := &internal.History{
+				Id:      affiliate_.ID,
+				Name:    affiliate_.Name,
+				Cc:      affiliate_.Cc,
+				History: history,
+			}
+
+			err = h.historyService.SaveHistory(request.Context(), payload)
+			if err != nil {
+				logger.Error("Error actualizando el historial", zap.Error(err))
+			}
+		}
+
 		responseDTO := &affiliate.ResponseDTO{}
 		response := responseDTO.Serialize(affiliate_)
 
@@ -216,3 +250,23 @@ func (h *AffiliateHandler) FindByClientId() http.HandlerFunc {
 		resp.NewResponse(writer).Ok(affiliates)
 	}
 }
+
+func (h *AffiliateHandler) GetHistory() http.HandlerFunc {
+	return func(writer http.ResponseWriter, request *http.Request) {
+		idStr := chi.URLParam(request, "id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			writer.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		history, err := h.historyService.FindByID(request.Context(), id)
+		if err != nil {
+			writer.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		resp.NewResponse(writer).Ok(history)
+	}
+}
+

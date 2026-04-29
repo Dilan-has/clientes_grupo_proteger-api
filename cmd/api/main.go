@@ -12,7 +12,7 @@ func main() {
 	addr := ":8080"
 	mysqlConfig := mysql.Config{
 		User:      "root",
-		Passwd:    "Dilan2208",
+		Passwd:    "root",
 		Net:       "tcp",
 		Addr:      "localhost:3306",
 		DBName:    "grupo_proteger",

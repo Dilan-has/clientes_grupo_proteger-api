@@ -14,7 +14,7 @@ type Affiliate struct {
 	Pension         string
 	Risk            string
 	Caja            string
-	Income          string
+	EntryDate       string
 	Birthdate       string
 	LastPaymentDate string
 }

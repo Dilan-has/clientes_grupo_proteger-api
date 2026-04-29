@@ -3,11 +3,11 @@ package internal
 import "errors"
 
 type Credentials struct {
-	Id           int
-	IdClient     int
-	Organization string
-	User         string
-	Password     string
+	Id             int
+	IdClient       int
+	OrganizationId int
+	User           string
+	Password       string
 }
 
 type CredentialsService interface {
