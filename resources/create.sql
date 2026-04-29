@@ -26,13 +26,14 @@ CREATE TABLE affiliates (
     risk VARCHAR(100),
     birthdate DATE,
     caja VARCHAR(100),
-    income DECIMAL(10, 2),
+    entry_date DATE,
+    last_payment_date DATE,
     FOREIGN KEY (id_client) REFERENCES clients(id)
 );
 CREATE TABLE credentials (
     id INT PRIMARY KEY AUTO_INCREMENT,
     id_client INT,
-    organization VARCHAR(100),
+    organization_id INT,
     user VARCHAR(50),
     pass VARCHAR(255),
     FOREIGN KEY (id_client) REFERENCES clients(id)

@@ -23,3 +23,7 @@ func (s *HistoryDefault) SaveHistory(ctx context.Context, history *internal.Hist
 	}
 	return
 }
+
+func (s *HistoryDefault) FindByID(ctx context.Context, id int) (*internal.History, error) {
+	return s.rp.FindByID(ctx, id)
+}

@@ -6,7 +6,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "F:/clientes_grupo_proteger-api/cmd/api"
+            "program": "${workspaceFolder}/cmd/api/main.go"
         }
     ]
 }

@@ -12,7 +12,7 @@ type ResponseDTO struct {
 	Pension         string `json:"pension"`
 	Risk            string `json:"risk"`
 	Caja            string `json:"caja"`
-	Income          string `json:"income"`
+	EntryDate       string `json:"entry_date"`
 	Birthdate       string `json:"birthdate"`
 	LastPaymentDate string `json:"last_payment_date"`
 }
@@ -28,7 +28,7 @@ func (r *ResponseDTO) Serialize(affiliate internal.Affiliate) ResponseDTO {
 		Pension:         affiliate.Pension,
 		Risk:            affiliate.Risk,
 		Caja:            affiliate.Caja,
-		Income:          affiliate.Income,
+		EntryDate:       affiliate.EntryDate,
 		Birthdate:       affiliate.Birthdate,
 		LastPaymentDate: affiliate.LastPaymentDate,
 	}

@@ -98,6 +98,7 @@ func (s *serverChi) Run() (err error) {
 		buildLegalRepRouter(r, db, logger)
 		buildCredentialsRouter(r, db, logger)
 		buildLoginRouter(r, db, logger)
+		buildOrganizationRouter(r, db, logger)
 	})
 
 	// Configuración CORS
@@ -152,6 +153,7 @@ func buildAffiliateRouter(router chi.Router, db *sql.DB, mongoDb *mongo.Database
 		r.Delete("/affiliates/{id}", hd.Delete())
 		r.Put("/affiliates", hd.Update())
 		r.Get("/affiliates/client/{clientId}", hd.FindByClientId())
+		r.Get("/affiliates/{id}/history", hd.GetHistory())
 	})
 }
 
@@ -199,4 +201,21 @@ func buildLoginRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
 	hd := handler.NewAuthHandler(svc)
 
 	router.Post("/login", hd.Login())
+}
+
+func buildOrganizationRouter(router chi.Router, db *sql.DB, logger *zap.Logger) {
+	rp := repository.NewOrganizationMySql(db, logger)
+	svc := service.NewOrganizationDefault(rp)
+	hd := handler.NewOrganizationHandler(svc)
+	rpAuth := repository.NewUserRepository(db, logger)
+	authService := service.NewAuthDefault(rpAuth)
+
+	router.Group(func(r chi.Router) {
+		r.Use(md.AuthMiddleware(authService))
+		r.Get("/organizations", hd.FindAll())
+		r.Get("/organizations/{id}", hd.FindByID())
+		r.Post("/organizations", hd.Create())
+		r.Delete("/organizations/{id}", hd.Delete())
+		r.Put("/organizations", hd.Update())
+	})
 }
